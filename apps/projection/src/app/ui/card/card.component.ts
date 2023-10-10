@@ -1,34 +1,43 @@
-import { NgFor, NgIf } from '@angular/common';
-import { Component, Input } from '@angular/core';
-import { randStudent, randTeacher } from '../../data-access/fake-http.service';
-import { StudentStore } from '../../data-access/student.store';
-import { TeacherStore } from '../../data-access/teacher.store';
-import { CardType } from '../../model/card.model';
+import { NgFor, NgTemplateOutlet } from '@angular/common';
+import {
+  Component,
+  EventEmitter,
+  Output,
+  Input,
+  TemplateRef,
+  ContentChild,
+} from '@angular/core';
 import { ListItemComponent } from '../list-item/list-item.component';
 
 @Component({
   selector: 'app-card',
-  templateUrl: './card.component.html',
+  template: `
+    <ng-content select="[card-image]"></ng-content>
+
+    <section>
+      <ng-container *ngFor="let item of list">
+        <ng-template
+          [ngTemplateOutlet]="cardListItemTemplate"
+          [ngTemplateOutletContext]="{ $implicit: item }" />
+      </ng-container>
+    </section>
+
+    <button
+      class="border border-blue-500 bg-blue-300 p-2 rounded-sm"
+      (click)="added.emit()">
+      Add
+    </button>
+  `,
   standalone: true,
-  imports: [NgIf, NgFor, ListItemComponent],
+  imports: [NgFor, ListItemComponent, NgTemplateOutlet],
+  host: {
+    class: 'border-2 border-black rounded-md p-4 w-fit flex flex-col gap-3',
+  },
 })
-export class CardComponent {
-  @Input() list: any[] | null = null;
-  @Input() type!: CardType;
-  @Input() customClass = '';
+export class CardComponent<T> {
+  @Input() list: T[] = [];
+  @Output() added = new EventEmitter<void>();
 
-  CardType = CardType;
-
-  constructor(
-    private teacherStore: TeacherStore,
-    private studentStore: StudentStore
-  ) {}
-
-  addNewItem() {
-    if (this.type === CardType.TEACHER) {
-      this.teacherStore.addOne(randTeacher());
-    } else if (this.type === CardType.STUDENT) {
-      this.studentStore.addOne(randStudent());
-    }
-  }
+  @ContentChild('cardListItemRef', { read: TemplateRef })
+  cardListItemTemplate!: TemplateRef<{ $implicit: T }>;
 }
